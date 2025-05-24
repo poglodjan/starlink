@@ -2,64 +2,77 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>drone motion monitor</title>
+    <title>Drone Motion Monitor</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="video-wrapper">
-            {% for video in videos %}
-                <video id="video{{ loop.index }}" autoplay loop muted playsinline>
-                    <source src="{{ url_for('static', filename='videos/' ~ video) }}" type="video/mp4">
-                    Twoja przeglądarka nie wspiera elementu video.
-                </video>
-            {% endfor %}
-        </div>
+<div class="sidebar">
+    <div class="video-wrapper">
+        {% for video in videos %}
+            <video id="video{{ loop.index }}" autoplay loop muted playsinline>
+                <source src="{{ url_for('static', filename='videos/' ~ video) }}" type="video/mp4">
+                Twoja przeglądarka nie wspiera elementu video.
+            </video>
+        {% endfor %}
     </div>
+</div>
 
-    <div class="main">
-        <div class="top-bar">
-            <button onclick="restartVideos()">🔁 Restart</button>
-        </div>
-
-        <canvas id="myChart" width="600" height="500"></canvas>
+<div class="main">
+    <div class="top-bar">
+        <button onclick="restartVideos()">🔁 Restart</button>
     </div>
+    <div id="trajectory-plot" style="width: 800px; height: 600px;"></div>
+</div>
 
-    <script>
-        function restartVideos() {
-            const videos = document.querySelectorAll("video");
-            videos.forEach(video => {
-                video.currentTime = 0;
-                video.play();
-            });
-        }
-
-        // Chart.js setup
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['A', 'B', 'C', 'D'],
-                datasets: [{
-                    label: 'Przykładowe dane',
-                    data: [12, 19, 3, 5],
-                    backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: 'white' } }
-                },
-                scales: {
-                    x: { ticks: { color: 'white' } },
-                    y: { ticks: { color: 'white' } }
-                }
-            }
+<script>
+    function restartVideos() {
+        document.querySelectorAll("video").forEach(video => {
+            video.currentTime = 0;
+            video.play();
         });
-    </script>
+    }
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    const trace = {
+        x: [], y: [], z: [],
+        mode: 'lines+markers',
+        marker: { size: 4, color: 'red' },
+        line: { color: 'red' },
+        type: 'scatter3d',
+        name: 'Trajektoria'
+    };
+
+    const layout = {
+        margin: { l: 0, r: 0, b: 0, t: 30 },
+        scene: {
+            xaxis: { title: 'X' },
+            yaxis: { title: 'Y' },
+            zaxis: { title: 'Z' }
+        }
+    };
+
+    Plotly.newPlot('trajectory-plot', [trace], layout);
+
+    function fetchLatestPoint() {
+        fetch('/trajectory/latest')
+            .then(res => res.json())
+            .then(point => {
+                if (point) {
+                    trace.x.push(point[0]);
+                    trace.y.push(point[1]);
+                    trace.z.push(point[2]);
+                    Plotly.extendTraces('trajectory-plot', {
+                        x: [[point[0]]],
+                        y: [[point[1]]],
+                        z: [[point[2]]]
+                    }, [0]);
+                }
+            });
+    }
+
+    setInterval(fetchLatestPoint, 30); // co 30ms
+</script>
+
 </body>
 </html>

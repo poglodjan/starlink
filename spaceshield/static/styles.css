@@ -54,6 +54,7 @@ button {
 }
 
 canvas {
+    display: none;
     background: #2e2e2e;
     border-radius: 8px;
     padding-left: 5%;
