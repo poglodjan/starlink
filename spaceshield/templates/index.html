@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>drone motion monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="video-wrapper">
+            {% for video in videos %}
+                <video id="video{{ loop.index }}" autoplay loop muted playsinline>
+                    <source src="{{ url_for('static', filename='videos/' ~ video) }}" type="video/mp4">
+                    Twoja przeglądarka nie wspiera elementu video.
+                </video>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="top-bar">
+            <button onclick="restartVideos()">🔁 Restart</button>
+        </div>
+
+        <canvas id="myChart" width="600" height="500"></canvas>
+    </div>
+
+    <script>
+        function restartVideos() {
+            const videos = document.querySelectorAll("video");
+            videos.forEach(video => {
+                video.currentTime = 0;
+                video.play();
+            });
+        }
+
+        // Chart.js setup
+        const ctx = document.getElementById('myChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['A', 'B', 'C', 'D'],
+                datasets: [{
+                    label: 'Przykładowe dane',
+                    data: [12, 19, 3, 5],
+                    backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: 'white' } }
+                },
+                scales: {
+                    x: { ticks: { color: 'white' } },
+                    y: { ticks: { color: 'white' } }
+                }
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
