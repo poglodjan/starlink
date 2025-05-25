@@ -28,7 +28,6 @@ with open('static/camera_data.json') as f: # parametry kamer
 cameras = [get_camera_matrix(cam) for cam in camera_data]
 
 def background_processing():
-    # sprawdzanie i import videos
     cam0_path = "static/videos/cam0.mp4"
     cam1_path = "static/videos/cam1.mp4"
     if not os.path.exists(cam0_path):
@@ -38,34 +37,32 @@ def background_processing():
         print("Nie znaleziono cam1.mp4")
         return
 
-    gen = get_frame_positions(cameras, [cam0_path, cam1_path])
-
     while True:
+        print("Rozpoczynam przetwarzanie wideo od początku...")
+        gen = get_frame_positions(cameras, [cam0_path, cam1_path])
+
         try:
-            frame_idx, positions = next(gen)
+            for frame_idx, positions in gen:
+                print(f"\nK {frame_idx}")
+                if positions:
+                    for obj_id, pos in positions.items():
+                        print(f"Obiekt {obj_id}: {np.round(pos, 2)}")
+                else:
+                    print("Brak obiektów")
 
-            print(f"\nK {frame_idx}")
-            if positions:
-                for obj_id, pos in positions.items():
-                    print(f"Obiekt {obj_id}: {np.round(pos, 2)}")
-            else:
-                print("Brak obiektów")
-
-                # zapis jako frame , object_id , lisa pozycji dla object_id
-            data = {
-                "frame": frame_idx,
-                "objects": {str(obj_id): list(np.round(pos, 2)) for obj_id, pos in positions.items()}
-            }
-            socketio.emit("frame_data", data) # tu wysylka danych
-            time.sleep(0.02)
-
-        except StopIteration:
-            print("Koniec przetwarzania wideo.")
-            break
+                data = {
+                    "frame": frame_idx,
+                    "objects": {
+                        str(obj_id): list(np.round(pos, 2))
+                        for obj_id, pos in positions.items()
+                    },
+                }
+                socketio.emit("frame_data", data)
 
         except Exception as e:
             print("Błąd w background_processing:", e)
-            break
+            time.sleep(1)  
+
 
 @socketio.on('connect')
 def on_connect():
