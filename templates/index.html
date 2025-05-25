@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Drone Motion Monitor</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <div class="top-bar">
+        <button onclick="startProcessing()">▶️ Start</button>
+    </div>
+
+<body>
+    <div class="top-bar">
+        <button onclick="startProcessing()">▶️ Start</button>
+    </div>
+    
+    <div class="sidebar">
+        <div class="video-wrapper">
+            {% for video in videos %}
+                <video class="video" muted playsinline>
+                    <source src="{{ url_for('static', filename='videos/' ~ video) }}" type="video/mp4">
+                    Twoja przeglądarka nie wspiera elementu video.
+                </video>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="main">
+        <div id="trajectory-plot" style="width: 800px; height: 600px;"></div>
+    </div>
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+    let trace = {
+        x: [], y: [], z: [],
+        mode: 'lines+markers',
+        type: 'scatter3d',
+        marker: { size: 4, color: 'red' },
+        line: { color: 'red' },
+        name: 'Trajektoria'
+    };
+    
+    Plotly.newPlot('trajectory-plot', [trace], {
+        margin: { l: 0, r: 0, b: 0, t: 30 },
+        scene: {
+            xaxis: { title: 'X' },
+            yaxis: { title: 'Y' },
+            zaxis: { title: 'Z' }
+        }
+    });
+    
+    let intervalId = null;
+    
+    function startProcessing() {
+        document.querySelectorAll("video").forEach(video => {
+            video.currentTime = 0;
+            video.play();
+        });
+    
+        fetch('/start', { method: 'POST' })
+            .then(res => res.json())
+            .then(() => {
+                intervalId = setInterval(fetchLatestPos, 33);  // ok. 30 klatek na sekundę
+            })
+            .catch(err => console.error("❌ Błąd przy starcie:", err));
+    }
+    
+    function fetchLatestPos() {
+        fetch("/trajectory/latest")
+            .then(res => res.json())
+            .then(pos => {
+                if (pos && pos[0] != null) {
+                    trace.x.push(pos[0]);
+                    trace.y.push(pos[1]);
+                    trace.z.push(pos[2]);
+                    Plotly.extendTraces('trajectory-plot', {
+                        x: [[pos[0]]],
+                        y: [[pos[1]]],
+                        z: [[pos[2]]]
+                    }, [0]);
+                }
+            })
+            .catch(err => console.error("❌ Błąd trajektorii:", err));
+    }
+    </script>
+    </body>
+    
